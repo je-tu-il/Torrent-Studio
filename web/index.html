@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torrent Studio - Gestionnaire BitTorrent</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f14' stroke='%2310b981' stroke-width='3'/%3E%3Cpath d='M32 14v24M20 27l12 12 12-12' fill='none' stroke='%2310b981' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 48h28' fill='none' stroke='%2334d399' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #090d12;
+      --bg-card: #121820;
+      --bg-card-hover: #171f2a;
+      --bg-input: #0c1117;
+      --border: #1e293b;
+      --border-hover: #334155;
+      
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --accent-hover: #34d399;
+      
+      --blue: #3b82f6;
+      --blue-glow: rgba(59, 130, 246, 0.25);
+      --purple: #8b5cf6;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 40%);
+    }
+
+    /* Top Header */
+    header {
+      background: rgba(18, 24, 32, 0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      color: #fff;
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 0.65rem;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 700;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Global Bandwidth & Stats Pill */
+    .global-stats-pill {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+    }
+
+    .stat-metric {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-metric.down { color: #38bdf8; }
+    .stat-metric.up { color: #4ade80; }
+    .stat-metric.dht { color: var(--text-muted); font-size: 0.75rem; }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(12, 17, 23, 0.6);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: var(--bg-card);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      border: 1px solid var(--border-hover);
+    }
+
+    .tab-badge {
+      background: var(--accent);
+      color: #064e3b;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: 99px;
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      flex: 1;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .section-title h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Action Controls Bar */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+    }
+
+    .filter-pill {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-pill:hover { color: var(--text-main); }
+    .filter-pill.active {
+      background: var(--border-hover);
+      color: #fff;
+    }
+
+    .search-box {
+      position: relative;
+      min-width: 260px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px 8px 36px;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #042f2e;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-card-hover);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--red);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+    }
+
+    /* Seed Toggle Button Dedicated */
+    .btn-seed-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 99px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-seed-toggle.active {
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+    .btn-seed-toggle.active:hover {
+      background: rgba(16, 185, 129, 0.3);
+      border-color: var(--accent);
+    }
+
+    .btn-seed-toggle.inactive {
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+    }
+    .btn-seed-toggle.inactive:hover {
+      background: rgba(148, 163, 184, 0.2);
+      color: #f8fafc;
+    }
+
+    /* Torrents Cards / Table List */
+    .torrent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .torrent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .torrent-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow);
+    }
+
+    .torrent-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+
+    .torrent-card.status-downloading::before { background: var(--blue); }
+    .torrent-card.status-seeding::before { background: var(--accent); }
+    .torrent-card.status-finished::before { background: var(--purple); }
+    .torrent-card.status-paused::before { background: var(--yellow); }
+    .torrent-card.status-metadata::before { background: #94a3b8; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .torrent-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .torrent-file-icon {
+      width: 38px;
+      height: 38px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .torrent-title-wrap {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .torrent-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+
+    .torrent-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+
+    .torrent-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge-downloading { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-seeding { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-finished { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .badge-paused { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-metadata { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+    /* Progress Section */
+    .card-middle {
+      margin-bottom: 12px;
+    }
+
+    .progress-bar-wrap {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      transition: width 0.3s ease;
+    }
+
+    .torrent-card.status-finished .progress-bar-fill { background: var(--purple); }
+    .torrent-card.status-seeding .progress-bar-fill { background: var(--accent); }
+    .torrent-card.status-paused .progress-bar-fill { background: var(--yellow); }
+
+    .progress-stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .progress-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .progress-percent {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .progress-speeds {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .speed-down { color: #38bdf8; }
+    .speed-up { color: #4ade80; }
+
+    .progress-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .seeds-count { color: #cbd5e1; }
+    .eta-text { color: #f8fafc; font-weight: 600; }
+
+    /* Card Bottom Actions */
+    .card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      padding-top: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .card-actions-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .priority-select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .priority-select:focus { border-color: var(--accent); }
+
+    .card-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Empty State */
+    .empty-box {
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: var(--text-dim);
+    }
+
+    .empty-box h3 {
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .empty-box p {
+      font-size: 0.85rem;
+      max-width: 400px;
+      margin: 0 auto 20px;
+    }
+
+    /* Forms & Inputs */
+    .form-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+      box-shadow: var(--shadow);
+    }
+
+    .form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .field-hint {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .input-text, .input-textarea, .input-select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    .input-text:focus, .input-textarea:focus, .input-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .input-with-action {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      background: rgba(12, 17, 23, 0.4);
+      border-radius: var(--radius-md);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.04);
+    }
+
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      color: var(--accent);
+    }
+
+    .dropzone h4 {
+      font-size: 0.95rem;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .dropzone p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-selected-pill {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 6px 14px;
+      border-radius: 99px;
+      color: #34d399;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Quick Folders Bar & Chips */
+    .quick-folders-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .quick-folder-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .quick-folder-chip:hover {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      transform: translateY(-1px);
+    }
+
+    @keyframes magnetPulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .magnet-pulse {
+      animation: magnetPulse 1.2s ease-out;
+      border-color: var(--accent) !important;
+    }
+
+    body.window-dragover::after {
+      content: 'Glissez et déposez votre fichier .torrent ici';
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 13, 18, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #34d399;
+      border: 3px dashed var(--accent);
+      pointer-events: none;
+    }
+
+    /* Checkbox & Switches */
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .checkbox-wrap input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 17px;
+      height: 17px;
+      cursor: pointer;
+    }
+
+    .checkbox-label-text strong {
+      display: block;
+      font-size: 0.84rem;
+      color: #fff;
+    }
+
+    .checkbox-label-text span {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    /* History Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.84rem;
+    }
+
+    th {
+      background: rgba(12, 17, 23, 0.8);
+      padding: 12px 18px;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      color: #cbd5e1;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: rgba(255,255,255,0.015);
+    }
+
+    /* Modal Dialog */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 { font-size: 1.1rem; color: #fff; }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .modal-footer {
+      padding: 14px 22px;
+      background: rgba(12, 17, 23, 0.4);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hover);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 0.84rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+
+    .toast.success { border-left: 4px solid var(--accent); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.info { border-left: 4px solid var(--blue); }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 850px) {
+      .header-inner { flex-direction: column; align-items: stretch; gap: 12px; }
+      .global-stats-pill { justify-content: space-around; }
+      .card-top, .card-bottom { flex-direction: column; align-items: stretch; }
+      .card-actions-left, .card-actions-right { justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Torrent Studio <span class="brand-badge">PRO v2</span></h1>
+          <p>Moteur libtorrent 2.1 • DHT actif</p>
+        </div>
+      </div>
+
+      <!-- Live Bandwidth Counter -->
+      <div class="global-stats-pill">
+        <div class="stat-metric down" title="Vitesse globale de téléchargement">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          <span id="globalDlSpeed">0 Ko/s</span>
+        </div>
+        <div class="stat-metric up" title="Vitesse globale d'envoi">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+          <span id="globalUlSpeed">0 Ko/s</span>
+        </div>
+        <div class="stat-metric dht" title="Nœuds DHT connectés">
+          <span id="dhtNodes">0 nœuds</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="downloads">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Téléchargements
+          <span class="tab-badge" id="activeCountBadge">0</span>
+        </button>
+        <button class="tab-btn" data-tab="add">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Ajouter
+        </button>
+        <button class="tab-btn" data-tab="create">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Créer un .torrent
+        </button>
+        <button class="tab-btn" data-tab="history">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Historique
+        </button>
+        <button class="tab-btn" data-tab="settings">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Paramètres
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: TÉLÉCHARGEMENTS -->
+    <section id="tab-downloads" class="tab-content active">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Mes Téléchargements</h2>
+          <p id="torrentsCountSummary">0 torrent au total</p>
+        </div>
+
+        <div class="controls-bar">
+          <!-- Filter pills -->
+          <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all">Tous</button>
+            <button class="filter-pill" data-filter="downloading">En cours</button>
+            <button class="filter-pill" data-filter="seeding">En seed</button>
+            <button class="filter-pill" data-filter="finished">Terminés</button>
+            <button class="filter-pill" data-filter="paused">En pause</button>
+          </div>
+
+          <!-- Search input -->
+          <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Filtrer par nom...">
+          </div>
+
+          <button class="btn btn-primary" onclick="switchTab('add')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Ajouter un torrent
+          </button>
+        </div>
+      </div>
+
+      <!-- Torrent Cards List -->
+      <div class="torrent-list" id="torrentListContainer">
+        <!-- Injected dynamically via JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-box" id="emptyTorrentsBox" style="display:none;">
+        <div class="empty-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </div>
+        <h3>Aucun torrent actif</h3>
+        <p>Importez un lien magnet ou un fichier .torrent pour commencer à télécharger à pleine vitesse.</p>
+        <button class="btn btn-primary" onclick="switchTab('add')">Ajouter un premier torrent</button>
+      </div>
+    </section>
+
+    <!-- TAB 2: AJOUTER UN TORRENT -->
+    <section id="tab-add" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Importer un Torrent</h2>
+          <p>Collez un lien magnet ou déposez votre fichier .torrent ci-dessous.</p>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <div class="form-grid">
+          <!-- Magnet Link Input -->
+          <div class="field-group">
+            <label class="field-label" for="magnetInput">
+              <span>Lien Magnet</span>
+              <span class="field-hint">magnet:?xt=urn:btih:...</span>
+            </label>
+            <div class="input-with-action">
+              <input type="text" id="magnetInput" class="input-text" placeholder="Collez votre lien magnet ici...">
+              <button class="btn btn-secondary" id="pasteMagnetBtn" type="button" title="Coller depuis le presse-papier">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                Coller
+              </button>
+            </div>
+          </div>
+
+          <div style="text-align:center; color: var(--text-dim); font-size: 0.8rem; font-weight: 700;">— OU —</div>
+
+          <!-- Torrent File Dropzone -->
+          <div class="field-group">
+            <label class="field-label">Fichier .torrent</label>
+            <div class="dropzone" id="torrentDropzone">
+              <input type="file" id="torrentFileInput" accept=".torrent,application/x-bittorrent">
+              <div class="dropzone-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <h4>Glissez-déposez votre fichier .torrent ici</h4>
+              <p>ou cliquez pour parcourir vos fichiers locaux</p>
+              <div id="selectedFilePill" class="file-selected-pill" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span id="selectedFileName">fichier.torrent</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Destination folder -->
+          <div class="field-group">
+            <label class="field-label" for="addSavePath">
+              <span>Dossier de destination</span>
+              <span class="field-hint">Où enregistrer les fichiers</span>
+            </label>
+            <div class="input-with-action">
+              <input type="text" id="addSavePath" class="input-text">
+              <button class="btn btn-secondary" id="browseAddPathBtn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Parcourir...
+              </button>
+            </div>
+            <div class="quick-folders-bar" id="addQuickFoldersBar"></div>
+          </div>
+
+          <!-- Priority & Seeding options -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="field-group">
+              <label class="field-label" for="addPriority">Priorité de téléchargement</label>
+              <select id="addPriority" class="input-select">
+                <option value="normal" selected>Normale</option>
+                <option value="high">Haute</option>
+                <option value="max">Maximale</option>
+                <option value="low">Basse</option>
+              </select>
+            </div>
+
+            <!-- Auto-seed checkbox -->
+            <div class="field-group">
+              <label class="field-label">Option de partage (Seeding)</label>
+              <label class="checkbox-wrap" style="height:42px;">
+                <input type="checkbox" id="addAutoSeed">
+                <div class="checkbox-label-text">
+                  <strong>Seeder après la fin du téléchargement</strong>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit button -->
+          <button class="btn btn-primary" id="submitAddBtn" style="justify-content:center; padding: 12px; font-size: 0.95rem; margin-top: 10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+            Démarrer le téléchargement
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CRÉATEUR DE .TORRENT -->
+    <section id="tab-create" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Créer un Fichier .torrent</h2>
+          <p>Générez un fichier .torrent valide à partir de n'importe quel fichier ou dossier de votre ordinateur.</p>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label" for="createSourcePath">Fichier ou dossier source</label>
+            <div class="input-with-action">
+              <input type="text" id="createSourcePath" class="input-text" placeholder="Ex: C:\Films\MonVideo.mp4 ou C:\Projets\Dossier">
+              <button class="btn btn-secondary" id="browseFileBtn" type="button" title="Choisir un fichier">
+                Fichier...
+              </button>
+              <button class="btn btn-secondary" id="browseFolderBtn" type="button" title="Choisir un dossier">
+                Dossier...
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="field-group">
+              <label class="field-label" for="createPieceSize">Taille des pièces</label>
+              <select id="createPieceSize" class="input-select">
+                <option value="0" selected>Automatique (Recommandé)</option>
+                <option value="32">32 Ko (petits fichiers)</option>
+                <option value="64">64 Ko</option>
+                <option value="128">128 Ko</option>
+                <option value="256">256 Ko (fichiers moyens)</option>
+                <option value="512">512 Ko</option>
+                <option value="1024">1 Mo</option>
+                <option value="2048">2 Mo (gros fichiers > 2 Go)</option>
+                <option value="4096">4 Mo</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="createComment">Commentaire (optionnel)</label>
+              <input type="text" id="createComment" class="input-text" placeholder="Créé avec Torrent Studio">
+            </div>
+          </div>
+
+          <!-- Trackers List -->
+          <div class="field-group">
+            <label class="field-label" for="createTrackers">
+              <span>Trackers publics (1 URL par ligne)</span>
+              <span class="field-hint">Pré-rempli avec les trackers les plus fiables</span>
+            </label>
+            <textarea id="createTrackers" class="input-textarea" rows="4"></textarea>
+          </div>
+
+          <!-- Seed after create checkbox -->
+          <div class="field-group">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="createSeedAfter" checked>
+              <div class="checkbox-label-text">
+                <strong>Commencer à seeder immédiatement ce torrent</strong>
+                <span>Ajoute automatiquement le fichier créé à vos partages actifs.</span>
+              </div>
+            </label>
+          </div>
+
+          <button class="btn btn-primary" id="generateTorrentBtn" style="justify-content:center; padding: 12px; font-size: 0.95rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            Générer le fichier .torrent
+          </button>
+
+          <!-- Result box after creation -->
+          <div id="createResultBox" style="display:none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+              <div>
+                <h4 style="color:#34d399; font-size:0.95rem; margin-bottom:4px;">Torrent généré avec succès !</h4>
+                <p id="createdTorrentInfo" style="font-size:0.8rem; color:var(--text-muted);"></p>
+              </div>
+              <a id="downloadTorrentLink" class="btn btn-primary btn-sm" href="#" download>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Télécharger le .torrent
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: HISTORIQUE -->
+    <section id="tab-history" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Historique des Torrents</h2>
+          <p>Retrouvez vos torrents terminés, passés ou supprimés.</p>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" id="clearHistoryBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Effacer l'historique
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom du torrent</th>
+              <th>Taille</th>
+              <th>Date d'ajout</th>
+              <th>Fin / Clôture</th>
+              <th>Téléchargé</th>
+              <th>Envoyé</th>
+              <th>Ratio</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <!-- Injected via JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-box" id="emptyHistoryBox" style="display:none; margin-top:16px;">
+        <p>Aucun torrent dans l'historique pour le moment.</p>
+      </div>
+    </section>
+
+    <!-- TAB 5: PARAMÈTRES -->
+    <section id="tab-settings" class="tab-content">
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Paramètres de l'Application</h2>
+          <p>Personnalisez vos dossiers, le comportement de seed par défaut et vos débits.</p>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <div class="form-grid">
+          <!-- Default auto-seed setting (KEY FEATURE REQUESTED BY USER) -->
+          <div class="field-group">
+            <label class="field-label">Comportement du Seed (Partage) par défaut</label>
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="settingDefaultAutoSeed">
+              <div class="checkbox-label-text">
+                <strong>Activer le seed automatiquement après la fin du téléchargement</strong>
+                <span>Si décoché (valeur par défaut recommandée), tout torrent achevé stoppera immédiatement son partage pour économiser votre bande passante.</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Page close behavior setting (FEATURE REQUESTED BY USER) -->
+          <div class="field-group">
+            <label class="field-label" for="settingCloseBehavior">
+              <span>Comportement à la fermeture de la page</span>
+              <span class="field-hint">Que faire quand la page du navigateur est fermée</span>
+            </label>
+            <select id="settingCloseBehavior" class="input-select">
+              <option value="finish_downloads_and_stop" selected>Continuer les téléchargements en arrière-plan puis arrêter le serveur à la fin (avec notification)</option>
+              <option value="keep_seeding_and_stop">Maintenir le serveur actif tant qu'il y a du téléchargement OU du seed actif</option>
+              <option value="always_24_7">Toujours actif 24h/24 (le serveur reste allumé en permanence sur le PC)</option>
+              <option value="stop_immediately">Arrêter le serveur immédiatement à la fermeture de la page</option>
+            </select>
+          </div>
+
+          <!-- Default save path -->
+          <div class="field-group">
+            <label class="field-label" for="settingDefaultSavePath">Dossier de téléchargement par défaut</label>
+            <div class="input-with-action">
+              <input type="text" id="settingDefaultSavePath" class="input-text">
+              <button class="btn btn-secondary" id="browseSettingPathBtn" type="button">Parcourir...</button>
+            </div>
+            <div class="quick-folders-bar" id="settingQuickFoldersBar"></div>
+          </div>
+
+          <!-- Speed limits -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="field-group">
+              <label class="field-label" for="settingMaxDl">Limite Download (Ko/s)</label>
+              <input type="number" id="settingMaxDl" class="input-text" placeholder="0 = illimité">
+              <span class="field-hint">0 pour aucune limite</span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="settingMaxUl">Limite Upload (Ko/s)</label>
+              <input type="number" id="settingMaxUl" class="input-text" placeholder="0 = illimité">
+              <span class="field-hint">0 pour aucune limite</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="saveSettingsBtn" style="justify-content:center; padding:12px; margin-top:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            Enregistrer les paramètres
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-backdrop" id="deleteModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="deleteModalTitle">Supprimer le torrent</h3>
+        <button class="modal-close" onclick="closeModal('deleteModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.9rem; color:#fff; margin-bottom:16px;" id="deleteModalMessage">Voulez-vous supprimer ce torrent ?</p>
+        <label class="checkbox-wrap">
+          <input type="checkbox" id="deleteWithFilesCheckbox">
+          <div class="checkbox-label-text">
+            <strong style="color:var(--red);">Supprimer également les fichiers du disque dur</strong>
+            <span>Attention : Cette action est irréversible et supprimera le contenu téléchargé.</span>
+          </div>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Annuler</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // State
+    const appState = {
+      torrents: [],
+      stats: {},
+      settings: {},
+      history: [],
+      currentFilter: 'all',
+      searchQuery: '',
+      activeTab: 'downloads',
+      pendingDeleteHash: null,
+      selectedTorrentFile: null
+    };
+
+    const DEFAULT_TRACKERS_LIST = [
+      "udp://tracker.opentrackr.org:1337/announce",
+      "udp://open.tracker.cl:1337/announce",
+      "udp://opentracker.i2p.rocks:6969/announce",
+      "udp://tracker.openbittorrent.com:6969/announce",
+      "udp://tracker.torrent.eu.org:451/announce",
+      "udp://explodie.org:6969/announce",
+      "udp://open.stealth.si:80/announce",
+      "http://tracker.openbittorrent.com:80/announce"
+    ];
+
+    // Utility Formatters
+    function formatBytes(bytes, decimals = 1) {
+      if (!bytes || bytes <= 0) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'Ko', 'Mo', 'Go', 'To'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function formatSpeed(bytesPerSec) {
+      if (!bytesPerSec || bytesPerSec <= 0) return '0 Ko/s';
+      return formatBytes(bytesPerSec, 1) + '/s';
+    }
+
+    function formatEta(seconds) {
+      if (seconds === 0) return 'Terminé';
+      if (!seconds || seconds <= 0 || !isFinite(seconds)) return 'Calcul...';
+      if (seconds < 60) return `${Math.round(seconds)}s`;
+      if (seconds < 3600) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.round(seconds % 60);
+        return `${m}m ${s}s`;
+      }
+      if (seconds < 86400) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return `${h}h ${m}m`;
+      }
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      return `${d}j ${h}h`;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          ${type === 'success' ? '<polyline points="20 6 9 17 4 12"></polyline>' : 
+            type === 'error' ? '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>' :
+            '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'}
+        </svg>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      const targetContent = document.getElementById(`tab-${tabId}`);
+
+      if (targetBtn) targetBtn.classList.add('active');
+      if (targetContent) targetContent.classList.add('active');
+      appState.activeTab = tabId;
+
+      if (tabId === 'history') fetchHistory();
+      if (tabId === 'settings') fetchSettings();
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // Modal helpers
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // API Calls
+    async function fetchTorrents() {
+      try {
+        const res = await fetch('/api/torrents');
+        if (!res.ok) return;
+        const data = await res.json();
+        appState.torrents = data.torrents || [];
+        appState.stats = data.stats || {};
+        updateGlobalStatsUI();
+        renderTorrentsList();
+      } catch (err) {
+        console.warn("fetchTorrents error:", err);
+      }
+    }
+
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const s = await res.json();
+        appState.settings = s;
+        document.getElementById('settingDefaultAutoSeed').checked = s.default_auto_seed;
+        if (s.close_behavior) {
+          document.getElementById('settingCloseBehavior').value = s.close_behavior;
+        }
+        document.getElementById('settingDefaultSavePath').value = s.default_save_path || '';
+        document.getElementById('settingMaxDl').value = s.max_download_rate ? Math.round(s.max_download_rate / 1024) : '';
+        document.getElementById('settingMaxUl').value = s.max_upload_rate ? Math.round(s.max_upload_rate / 1024) : '';
+
+        // Pre-fill Add tab save path & auto-seed if empty
+        if (!document.getElementById('addSavePath').value) {
+          document.getElementById('addSavePath').value = s.default_save_path || '';
+        }
+        document.getElementById('addAutoSeed').checked = s.default_auto_seed;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function fetchHistory() {
+      try {
+        const res = await fetch('/api/history');
+        if (!res.ok) return;
+        appState.history = await res.json();
+        renderHistoryTable();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // UI Updates
+    function updateGlobalStatsUI() {
+      const stats = appState.stats;
+      document.getElementById('globalDlSpeed').textContent = formatSpeed(stats.total_download_rate);
+      document.getElementById('globalUlSpeed').textContent = formatSpeed(stats.total_upload_rate);
+      document.getElementById('dhtNodes').textContent = `${stats.dht_nodes || 0} nœuds DHT`;
+      document.getElementById('activeCountBadge').textContent = (stats.active_downloads || 0) + (stats.active_seeds || 0);
+
+      const total = appState.torrents.length;
+      document.getElementById('torrentsCountSummary').textContent = `${total} torrent${total > 1 ? 's' : ''} (${stats.active_downloads || 0} en cours, ${stats.active_seeds || 0} en seed, ${stats.completed_count || 0} terminé${stats.completed_count > 1 ? 's' : ''})`;
+    }
+
+    function renderTorrentsList() {
+      const container = document.getElementById('torrentListContainer');
+      const emptyBox = document.getElementById('emptyTorrentsBox');
+      const query = appState.searchQuery.toLowerCase();
+      const filter = appState.currentFilter;
+
+      const filtered = appState.torrents.filter(t => {
+        const nameMatch = (t.name || '').toLowerCase().includes(query);
+        if (!nameMatch) return false;
+
+        if (filter === 'all') return true;
+        if (filter === 'downloading') return t.state === 'downloading' || t.state === 'metadata' || t.state === 'stalled';
+        if (filter === 'seeding') return t.state === 'seeding';
+        if (filter === 'finished') return t.state === 'finished' || t.progress >= 0.9999;
+        if (filter === 'paused') return t.state === 'paused';
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyBox.style.display = 'block';
+        return;
+      }
+
+      emptyBox.style.display = 'none';
+
+      // Diff-render or rebuild cards smoothly
+      container.innerHTML = filtered.map(t => {
+        const percent = Math.min(100, Math.max(0, (t.progress || 0) * 100)).toFixed(1);
+        const isPaused = t.state === 'paused';
+        const isSeeding = t.state === 'seeding';
+        const isFinished = t.progress >= 0.9999 || t.is_finished;
+        const seedEnabled = t.seed_enabled;
+
+        // Badge class & label
+        let badgeClass = 'badge-metadata';
+        if (t.state === 'downloading') badgeClass = 'badge-downloading';
+        else if (t.state === 'seeding') badgeClass = 'badge-seeding';
+        else if (t.state === 'finished') badgeClass = 'badge-finished';
+        else if (t.state === 'paused') badgeClass = 'badge-paused';
+
+        // Seed Toggle Button Display
+        const seedToggleBtnHtml = seedEnabled ? `
+          <button class="btn-seed-toggle active" onclick="torrentAction('${t.hash}', 'toggle_seed', false)" title="Cliquez pour désactiver le seed de ce torrent">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Seed Actif
+          </button>
+        ` : `
+          <button class="btn-seed-toggle inactive" onclick="torrentAction('${t.hash}', 'toggle_seed', true)" title="Cliquez pour réactiver le seed de ce torrent">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+            Seed Inactif
+          </button>
+        `;
+
+        return `
+          <div class="torrent-card status-${t.state}" data-hash="${t.hash}">
+            <div class="card-top">
+              <div class="torrent-info">
+                <div class="torrent-file-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+                <div class="torrent-title-wrap">
+                  <span class="torrent-title" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span>
+                  <div class="torrent-meta">
+                    <span>${formatBytes(t.total_done)} / ${formatBytes(t.total_size)}</span>
+                    <span>•</span>
+                    <span title="${escapeHtml(t.save_path)}">📁 ${escapeHtml(t.save_path)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="badge ${badgeClass}">
+                  <span class="badge-dot"></span>
+                  ${escapeHtml(t.state_label)}
+                </span>
+              </div>
+            </div>
+
+            <!-- Progress section -->
+            <div class="card-middle">
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+              </div>
+              <div class="progress-stats">
+                <div class="progress-left">
+                  <span class="progress-percent">${percent}%</span>
+                  <div class="progress-speeds">
+                    <span class="speed-down" title="Vitesse de téléchargement">↓ ${formatSpeed(t.download_rate)}</span>
+                    <span class="speed-up" title="Vitesse d'envoi">↑ ${formatSpeed(t.upload_rate)}</span>
+                  </div>
+                </div>
+                <div class="progress-right">
+                  <span class="seeds-count" title="Seeds connectés / Pairs dans l'essaim">
+                    🌱 <b>${t.num_seeds}</b> seeds <span style="opacity:0.6;">(${t.num_peers} pairs)</span>
+                  </span>
+                  <span class="eta-text" title="Temps restant estimé">
+                    ⏱️ ${formatEta(t.eta_seconds)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions footer -->
+            <div class="card-bottom">
+              <div class="card-actions-left">
+                <!-- Dedicated Seed Toggle Button -->
+                ${seedToggleBtnHtml}
+
+                <!-- Priority selector -->
+                <div style="display:flex; align-items:center; gap:5px;">
+                  <span style="font-size:0.73rem; color:var(--text-dim); font-weight:600;">Priorité :</span>
+                  <select class="priority-select" onchange="setPriority('${t.hash}', this.value)">
+                    <option value="low" ${t.priority === 'low' ? 'selected' : ''}>Basse</option>
+                    <option value="normal" ${t.priority === 'normal' ? 'selected' : ''}>Normale</option>
+                    <option value="high" ${t.priority === 'high' ? 'selected' : ''}>Haute</option>
+                    <option value="max" ${t.priority === 'max' ? 'selected' : ''}>Maximale</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card-actions-right">
+                ${isPaused ? `
+                  <button class="btn btn-secondary btn-sm" onclick="torrentAction('${t.hash}', 'resume')" title="Reprendre le téléchargement">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Reprendre
+                  </button>
+                ` : `
+                  <button class="btn btn-secondary btn-sm" onclick="torrentAction('${t.hash}', 'pause')" title="Mettre en pause">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                  </button>
+                `}
+                <button class="btn btn-danger btn-sm" onclick="promptDelete('${t.hash}', '${escapeHtml(t.name).replace(/'/g, "\\'")}')" title="Supprimer ce torrent">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHistoryTable() {
+      const tbody = document.getElementById('historyTableBody');
+      const emptyBox = document.getElementById('emptyHistoryBox');
+
+      if (!appState.history || appState.history.length === 0) {
+        tbody.innerHTML = '';
+        emptyBox.style.display = 'block';
+        return;
+      }
+
+      emptyBox.style.display = 'none';
+      tbody.innerHTML = appState.history.map(item => `
+        <tr>
+          <td>
+            <div style="font-weight:700; color:#fff; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              ${escapeHtml(item.name)}
+            </div>
+          </td>
+          <td>${formatBytes(item.size)}</td>
+          <td><span style="font-size:0.75rem; color:var(--text-dim);">${escapeHtml(item.date_added)}</span></td>
+          <td><span style="font-size:0.75rem; color:var(--text-dim);">${escapeHtml(item.date_finished || '—')}</span></td>
+          <td style="color:#38bdf8;">${formatBytes(item.downloaded)}</td>
+          <td style="color:#4ade80;">${formatBytes(item.uploaded)}</td>
+          <td><b>${item.ratio || 0}</b></td>
+          <td><span class="badge ${item.status === 'Terminé' ? 'badge-seeding' : 'badge-metadata'}">${escapeHtml(item.status)}</span></td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              ${item.magnet_uri ? `
+                <button class="btn btn-secondary btn-sm" onclick="reAddFromHistory('${escapeHtml(item.magnet_uri).replace(/'/g, "\\'")}')" title="Re-télécharger ce torrent">
+                  Relancer
+                </button>
+              ` : ''}
+              <button class="btn btn-danger btn-sm" onclick="deleteHistoryItem('${item.hash}')" title="Supprimer de l'historique">
+                ×
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Torrent Actions
+    async function torrentAction(hash, action, extraValue = null) {
+      const payload = { hash, action };
+      if (action === 'toggle_seed') payload.seed_enabled = extraValue;
+
+      try {
+        const res = await fetch('/api/torrents/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (action === 'toggle_seed') {
+            showToast(extraValue ? "Seed activé pour ce torrent" : "Seed désactivé pour ce torrent", "info");
+          }
+          fetchTorrents();
+        } else {
+          showToast(data.detail || "Action impossible", "error");
+        }
+      } catch (err) {
+        showToast("Erreur de communication : " + err.message, "error");
+      }
+    }
+
+    async function setPriority(hash, priority) {
+      try {
+        await fetch('/api/torrents/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash, action: 'set_priority', priority })
+        });
+        showToast(`Priorité ajustée sur : ${priority}`, "info");
+        fetchTorrents();
+      } catch (err) {
+        showToast("Erreur lors du changement de priorité", "error");
+      }
+    }
+
+    function promptDelete(hash, name) {
+      appState.pendingDeleteHash = hash;
+      document.getElementById('deleteModalMessage').textContent = `Êtes-vous sûr de vouloir supprimer « ${name} » de vos téléchargements ?`;
+      document.getElementById('deleteWithFilesCheckbox').checked = false;
+      openModal('deleteModal');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+      const hash = appState.pendingDeleteHash;
+      if (!hash) return;
+      const deleteFiles = document.getElementById('deleteWithFilesCheckbox').checked;
+
+      try {
+        const res = await fetch('/api/torrents/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash, action: 'delete', delete_files: deleteFiles })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(deleteFiles ? "Torrent et fichiers supprimés" : "Torrent retiré de la liste", "success");
+          closeModal('deleteModal');
+          fetchTorrents();
+        } else {
+          showToast("Erreur : " + data.detail, "error");
+        }
+      } catch (err) {
+        showToast("Erreur réseau : " + err.message, "error");
+      }
+    });
+
+    // Add Torrent Handler
+    document.getElementById('submitAddBtn').addEventListener('click', async () => {
+      const magnet = document.getElementById('magnetInput').value.trim();
+      const file = appState.selectedTorrentFile;
+      const savePath = document.getElementById('addSavePath').value.trim();
+      const priority = document.getElementById('addPriority').value;
+      const autoSeed = document.getElementById('addAutoSeed').checked;
+
+      if (!magnet && !file) {
+        showToast("Veuillez renseigner un lien magnet ou déposer un fichier .torrent.", "error");
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitAddBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Ajout en cours...";
+
+      try {
+        if (file) {
+          const fd = new FormData();
+          fd.append('file', file);
+          if (savePath) fd.append('save_path', savePath);
+          fd.append('priority', priority);
+          fd.append('auto_seed', autoSeed);
+
+          const res = await fetch('/api/torrents/add-file', { method: 'POST', body: fd });
+          const data = await res.json();
+          if (data.success) {
+            showToast(`Fichier « ${file.name} » ajouté avec succès !`, "success");
+            resetAddForm();
+            switchTab('downloads');
+          } else {
+            showToast(data.detail || "Échec de l'ajout", "error");
+          }
+        } else if (magnet) {
+          const res = await fetch('/api/torrents/add-magnet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ magnet, save_path: savePath, priority, auto_seed: autoSeed })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast("Lien magnet ajouté avec succès !", "success");
+            resetAddForm();
+            switchTab('downloads');
+          } else {
+            showToast(data.detail || "Échec de l'ajout", "error");
+          }
+        }
+      } catch (err) {
+        const msg = (err.message && err.message.includes('Failed to fetch'))
+          ? "Le serveur local ne répond pas. Vérifiez que run.bat est bien démarré."
+          : (err.message || "Erreur inconnue");
+        showToast("Erreur lors de l'ajout : " + msg, "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
+          Démarrer le téléchargement
+        `;
+        fetchTorrents();
+      }
+    });
+
+    function resetAddForm() {
+      document.getElementById('magnetInput').value = '';
+      document.getElementById('torrentFileInput').value = '';
+      appState.selectedTorrentFile = null;
+      document.getElementById('selectedFilePill').style.display = 'none';
+    }
+
+    // Dropzone logic
+    const dropzone = document.getElementById('torrentDropzone');
+    const fileInput = document.getElementById('torrentFileInput');
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelect(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFileSelect(file) {
+      if (!file.name.endsWith('.torrent')) {
+        showToast("Seuls les fichiers .torrent sont acceptés.", "error");
+        return;
+      }
+      appState.selectedTorrentFile = file;
+      document.getElementById('selectedFileName').textContent = file.name;
+      document.getElementById('selectedFilePill').style.display = 'inline-flex';
+      showToast(`Fichier sélectionné : ${file.name}`, "info");
+    }
+
+    // Paste Magnet Button
+    document.getElementById('pasteMagnetBtn').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim().includes('magnet:?xt=urn:')) {
+          const match = text.trim().match(/(magnet:\?xt=urn:[^\s"'>]+)/i);
+          document.getElementById('magnetInput').value = match ? match[1] : text.trim();
+          showToast("Lien magnet collé depuis le presse-papier !", "success");
+        } else {
+          showToast("Le presse-papier ne contient pas de lien magnet valide.", "error");
+        }
+      } catch (err) {
+        showToast("Accès presse-papier refusé. Utilisez simplement Ctrl+V sur la page !", "info");
+      }
+    });
+
+    // Native Windows folder and file browsing with visual loading state
+    async function browseFolderAction(targetInputId, btnId) {
+      const btn = document.getElementById(btnId);
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span style="font-size:0.75rem;">Ouverture...</span>`;
+
+      try {
+        const res = await fetch('/api/browse-folder');
+        if (!res.ok) throw new Error("Erreur de connexion au serveur");
+        const data = await res.json();
+        if (data.path) {
+          document.getElementById(targetInputId).value = data.path;
+          showToast(`Dossier sélectionné : ${data.path}`, "info");
+        }
+      } catch (err) {
+        showToast("Impossible d'ouvrir le sélecteur : " + err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    async function browseFileAction(targetInputId, btnId) {
+      const btn = document.getElementById(btnId);
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span style="font-size:0.75rem;">Ouverture...</span>`;
+
+      try {
+        const res = await fetch('/api/browse-file');
+        if (!res.ok) throw new Error("Erreur de connexion au serveur");
+        const data = await res.json();
+        if (data.path) {
+          document.getElementById(targetInputId).value = data.path;
+          showToast(`Fichier sélectionné : ${data.path}`, "info");
+        }
+      } catch (err) {
+        showToast("Impossible d'ouvrir le sélecteur : " + err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    document.getElementById('browseAddPathBtn').addEventListener('click', () => {
+      browseFolderAction('addSavePath', 'browseAddPathBtn');
+    });
+
+    document.getElementById('browseSettingPathBtn').addEventListener('click', () => {
+      browseFolderAction('settingDefaultSavePath', 'browseSettingPathBtn');
+    });
+
+    document.getElementById('browseFileBtn').addEventListener('click', () => {
+      browseFileAction('createSourcePath', 'browseFileBtn');
+    });
+
+    document.getElementById('browseFolderBtn').addEventListener('click', () => {
+      browseFolderAction('createSourcePath', 'browseFolderBtn');
+    });
+
+    // Create Torrent Handler
+    document.getElementById('createTrackers').value = DEFAULT_TRACKERS_LIST.join('\n');
+
+    document.getElementById('generateTorrentBtn').addEventListener('click', async () => {
+      const sourcePath = document.getElementById('createSourcePath').value.trim();
+      const pieceSizeKb = parseInt(document.getElementById('createPieceSize').value, 10);
+      const comment = document.getElementById('createComment').value.trim();
+      const trackersText = document.getElementById('createTrackers').value.trim();
+      const seedAfter = document.getElementById('createSeedAfter').checked;
+
+      if (!sourcePath) {
+        showToast("Veuillez sélectionner un fichier ou un dossier source.", "error");
+        return;
+      }
+
+      const trackers = trackersText.split('\n').map(t => t.trim()).filter(Boolean);
+      const btn = document.getElementById('generateTorrentBtn');
+      btn.disabled = true;
+      btn.textContent = "Hachage et création du .torrent en cours...";
+
+      try {
+        const res = await fetch('/api/torrents/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_path: sourcePath,
+            piece_size_kb: pieceSizeKb,
+            comment,
+            trackers,
+            seed_after: seedAfter
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const c = data.created;
+          showToast(`Torrent « ${c.name} » créé avec succès !`, "success");
+          document.getElementById('createdTorrentInfo').textContent = `${c.name} • ${formatBytes(c.size)} (${c.pieces} pièces de ${formatBytes(c.piece_length)})`;
+          const dlLink = document.getElementById('downloadTorrentLink');
+          dlLink.href = `/api/torrents/download-torrent/${c.hash}`;
+          dlLink.download = c.output_filename;
+          document.getElementById('createResultBox').style.display = 'block';
+
+          if (seedAfter) {
+            fetchTorrents();
+          }
+        } else {
+          showToast(data.detail || "Échec de création", "error");
+        }
+      } catch (err) {
+        showToast("Erreur lors de la création : " + err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Générer le fichier .torrent
+        `;
+      }
+    });
+
+    // History Actions
+    async function deleteHistoryItem(hash) {
+      await fetch(`/api/history?hash=${hash}`, { method: 'DELETE' });
+      showToast("Entrée supprimée de l'historique", "info");
+      fetchHistory();
+    }
+
+    document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
+      if (confirm("Voulez-vous vraiment vider tout l'historique ?")) {
+        await fetch('/api/history', { method: 'DELETE' });
+        showToast("Historique vidé", "info");
+        fetchHistory();
+      }
+    });
+
+    function reAddFromHistory(magnet) {
+      document.getElementById('magnetInput').value = magnet;
+      switchTab('add');
+      showToast("Lien magnet chargé dans l'onglet Ajouter", "info");
+    }
+
+    // Settings Form
+    document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+      const defaultAutoSeed = document.getElementById('settingDefaultAutoSeed').checked;
+      const closeBehavior = document.getElementById('settingCloseBehavior').value;
+      const defaultSavePath = document.getElementById('settingDefaultSavePath').value.trim();
+      const maxDl = parseInt(document.getElementById('settingMaxDl').value || 0, 10) * 1024;
+      const maxUl = parseInt(document.getElementById('settingMaxUl').value || 0, 10) * 1024;
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            default_auto_seed: defaultAutoSeed,
+            close_behavior: closeBehavior,
+            default_save_path: defaultSavePath,
+            max_download_rate: maxDl,
+            max_upload_rate: maxUl
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("Paramètres enregistrés avec succès !", "success");
+        }
+      } catch (err) {
+        showToast("Erreur lors de la sauvegarde : " + err.message, "error");
+      }
+    });
+
+    // Filter Pills
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        appState.currentFilter = pill.dataset.filter;
+        renderTorrentsList();
+      });
+    });
+
+    // Search Input
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      appState.searchQuery = e.target.value;
+      renderTorrentsList();
+    });
+
+    // ==========================================
+    // Quick Folders System
+    // ==========================================
+    const FOLDER_ICONS = {
+      download: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+      desktop: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`,
+      video: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`,
+      folder: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+      drive: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>`
+    };
+
+    async function loadQuickFolders() {
+      try {
+        const res = await fetch('/api/quick-folders');
+        if (!res.ok) return;
+        const data = await res.json();
+        const folders = data.folders || [];
+        renderQuickFolders('addQuickFoldersBar', 'addSavePath', folders);
+        renderQuickFolders('settingQuickFoldersBar', 'settingDefaultSavePath', folders);
+      } catch (err) {
+        console.warn("Could not load quick folders:", err);
+      }
+    }
+
+    function renderQuickFolders(containerId, targetInputId, folders) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = `
+        <span style="font-size:0.72rem; color:var(--text-dim); display:flex; align-items:center; gap:4px; margin-right:4px;">
+          Dossiers rapides :
+        </span>
+      ` + folders.map(f => {
+        const iconSvg = FOLDER_ICONS[f.icon] || FOLDER_ICONS.folder;
+        const cleanPath = f.path.replace(/\\/g, '\\\\');
+        return `
+          <button type="button" class="quick-folder-chip" onclick="selectQuickFolder('${targetInputId}', '${cleanPath}')" title="${escapeHtml(f.path)}">
+            ${iconSvg}
+            <span>${escapeHtml(f.name)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectQuickFolder(inputId, path) {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = path;
+        showToast(`Dossier sélectionné : ${path}`, "info");
+      }
+    }
+
+    // ==========================================
+    // Global Ctrl+V Magnet Link Auto-Detection
+    // ==========================================
+    window.addEventListener('paste', (e) => {
+      const activeEl = document.activeElement;
+      
+      let pastedText = '';
+      if (e.clipboardData && e.clipboardData.getData) {
+        pastedText = e.clipboardData.getData('text');
+      }
+
+      if (!pastedText) return;
+
+      const trimmed = pastedText.trim();
+      const magnetMatch = trimmed.match(/(magnet:\?xt=urn:[^\s"'>]+)/i);
+
+      if (magnetMatch) {
+        // If the user is already typing inside the magnet textarea, let normal paste happen
+        if (activeEl && activeEl.id === 'magnetInput') return;
+
+        e.preventDefault();
+        const magnetUri = magnetMatch[1];
+        switchTab('add');
+        const magnetInput = document.getElementById('magnetInput');
+        magnetInput.value = magnetUri;
+        magnetInput.classList.remove('magnet-pulse');
+        void magnetInput.offsetWidth; // Trigger reflow
+        magnetInput.classList.add('magnet-pulse');
+        magnetInput.focus();
+        showToast("Lien magnet détecté et collé automatiquement !", "success");
+      }
+    });
+
+    // ==========================================
+    // Global Drag & Drop for .torrent files
+    // ==========================================
+    let dragDepth = 0;
+    window.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+        document.body.classList.add('window-dragover');
+      }
+    });
+
+    window.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragDepth--;
+      if (dragDepth <= 0) {
+        dragDepth = 0;
+        document.body.classList.remove('window-dragover');
+      }
+    });
+
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      document.body.classList.remove('window-dragover');
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.name.toLowerCase().endsWith('.torrent')) {
+          switchTab('add');
+          handleFileSelect(file);
+          showToast(`Fichier « ${file.name} » importé ! Prêt à télécharger.`, "success");
+        }
+      }
+    });
+
+    // ==========================================
+    // Heartbeat & Tab Focus Wakeup
+    // ==========================================
+    setInterval(async () => {
+      try {
+        await fetch('/api/heartbeat');
+      } catch (_) {}
+    }, 8000);
+
+    function onTabAwake() {
+      if (!document.hidden) {
+        fetch('/api/heartbeat').catch(() => {});
+        fetchTorrents();
+      }
+    }
+    window.addEventListener('focus', onTabAwake);
+    document.addEventListener('visibilitychange', onTabAwake);
+
+    // Avertir le serveur lors de la fermeture de l'onglet
+    window.addEventListener('beforeunload', () => {
+      try {
+        navigator.sendBeacon('/api/leave');
+      } catch (_) {}
+    });
+
+    // Init & Polling
+    fetchSettings();
+    loadQuickFolders();
+    fetchTorrents();
+    setInterval(fetchTorrents, 1000);
+  </script>
+</body>
+</html>

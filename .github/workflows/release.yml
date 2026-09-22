@@ -46,6 +46,14 @@ jobs:
           --hidden-import "uvicorn.protocols.http.auto" `
           --hidden-import "uvicorn.lifespan" `
           --hidden-import "uvicorn.lifespan.on" `
+          --hidden-import "multipart" `
+          --exclude-module "PyQt6" `
+          --exclude-module "PyQt5" `
+          --exclude-module "matplotlib" `
+          --exclude-module "numpy" `
+          --exclude-module "scipy" `
+          --exclude-module "pandas" `
+          --exclude-module "tkinter" `
           app.py
 
     - name: Publish to GitHub Releases

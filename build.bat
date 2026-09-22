@@ -1,10 +1,16 @@
 @echo off
 cd /d "%~dp0"
 echo ===================================================
-echo     Compilation de Torrent Studio en .exe standalone
+echo     Compilation de Torrent Studio (Ultra-Leger)
 echo ===================================================
 
-pyinstaller --noconfirm --clean --onefile --noconsole ^
+if exist ".venv\Scripts\pyinstaller.exe" (
+    set "PYI_BIN=.venv\Scripts\pyinstaller.exe"
+) else (
+    set "PYI_BIN=pyinstaller"
+)
+
+%PYI_BIN% --noconfirm --clean --onefile --noconsole ^
     --name "TorrentStudio" ^
     --icon "web\favicon.ico" ^
     --add-data "web;web" ^
@@ -20,6 +26,14 @@ pyinstaller --noconfirm --clean --onefile --noconsole ^
     --hidden-import "uvicorn.protocols.http.auto" ^
     --hidden-import "uvicorn.lifespan" ^
     --hidden-import "uvicorn.lifespan.on" ^
+    --hidden-import "multipart" ^
+    --exclude-module "PyQt6" ^
+    --exclude-module "PyQt5" ^
+    --exclude-module "matplotlib" ^
+    --exclude-module "numpy" ^
+    --exclude-module "scipy" ^
+    --exclude-module "pandas" ^
+    --exclude-module "tkinter" ^
     app.py
 
 if %errorlevel% equ 0 (

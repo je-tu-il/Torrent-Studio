@@ -991,7 +991,17 @@
       .card-top, .card-bottom { flex-direction: column; align-items: stretch; }
       .card-actions-left, .card-actions-right { justify-content: space-between; }
     }
-  </style>
+  
+.header-inner { gap: .75rem; flex-wrap: wrap; }
+.brand-text h1 { font-size: clamp(1.1rem, 3vw, 1.55rem); letter-spacing: -.035em; }
+.global-stats-pill { max-width: 100%; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.nav-tabs { overflow-x: auto; }
+.nav-tabs button { flex-shrink: 0; min-height: 44px; }
+.controls-bar, .filter-pills { flex-wrap: wrap; }
+.search-box { min-width: 0; }
+.torrent-card { border-radius: .875rem; }
+:where(button, input, select, a):focus-visible { outline: 2px solid #96cfff; outline-offset: 2px; }
+</style>
 </head>
 <body>
 

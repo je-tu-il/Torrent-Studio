@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Torrent Studio - Gestionnaire BitTorrent</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b0f14' stroke='%2310b981' stroke-width='3'/%3E%3Cpath d='M32 14v24M20 27l12 12 12-12' fill='none' stroke='%2310b981' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 48h28' fill='none' stroke='%2334d399' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="shortcut icon" href="/favicon.ico">
 <link rel="stylesheet" href="fonts/fonts.css">
 
   <style>
@@ -1000,6 +996,18 @@
 .torrent-card { border-radius: .875rem; }
 :where(button, input, select, a):focus-visible { outline: 2px solid #96cfff; outline-offset: 2px; }
 </style>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+@media screen {
+  :root { --interface-accent: #2d65a5; --interface-edge: color-mix(in srgb, var(--interface-accent) 58%, currentColor 42%); }
+  :where(h1, h2, h3) { text-wrap: balance; }
+  :where(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--interface-edge); outline-offset: 3px; }
+  :where(header) { box-shadow: inset 0 2px 0 var(--interface-edge); }
+  :where(header) :where(h1), h1:where(header) { letter-spacing: -.035em; line-height: 1.12; }
+  :where(main > section) { border-color: color-mix(in srgb, var(--interface-accent) 45%, transparent); }
+  :where(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--interface-accent); }
+  ::selection { background: var(--interface-accent); color: white; }
+}</style>
 </head>
 <body>
 
